@@ -88,9 +88,16 @@ def extract_before_volume(text):
         collected.append(line)
     return None, None  # no Volume: found
 
+class itemClass:
+    def __init__(self, name, amount=1, buy_price=None, sell_price=None):
+        self.name = name
+        self.amount = amount
+        self.buy_price = buy_price
+        self.sell_price = sell_price
+
 def main_loop():
     cap = mss()
-    items = {"amount": 0 , "buy price": None, "sell price": None}
+    items = {}
     print("Scanning ROI for text before 'Volume:'... Press Ctrl+C to stop.")
     volume_line = None
     
@@ -123,12 +130,16 @@ def main_loop():
 
                 #format string to remove noise
                 if before in items:
-                    items[before]["amount"] += 1
                     print("added "+ before)
+                    items[before].amount += 1
+                else:
+                    print("added "+ before)
+                    items[before] = itemClass(name=before)
                     for item in data["data"]:
                         if item["item_name"] in items:
-                            items[item["item_name"]]["buy price"] = item["price_buy"]
-                            items[item["item_name"]]["sell price"] = item["price_sell"]
+                            items[before].buy_price = item["price_buy"]
+                            items[before].sell_price = item["price_sell"]
+
 
 
                 # Small delay so it doesn’t print multiple times on one press
@@ -141,9 +152,8 @@ def main_loop():
     with open('mycsvfile.csv', 'w', newline='') as f:
         writer = csv.writer(f)
         writer.writerow(['item', 'amount', "buy price", "sell price"])  # Write header
-        for key, value in items.items():
-            if value:
-                writer.writerow([key, value["amount"], value["buy price"], value["sell price"]])
+        for key in items:
+            writer.writerow([key, items[key].amount, items[key].buy_price, items[key].sell_price])
     text_var.set("done")
     os._exit(0)
     

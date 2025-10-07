@@ -92,7 +92,7 @@ def extract_before_volume(text):
     return None, None  # no Volume: found
 
 class itemClass:
-    def __init__(self, name, amount=1, buy_price=None, sell_price=None):
+    def __init__(self, name, amount=0, buy_price=None, sell_price=None):
         self.name = name
         self.amount = amount
         self.buy_price = buy_price
@@ -132,8 +132,8 @@ def main_loop():
                     item = items[name]
                     item.amount += 1
                     name = name
-                    buyPrice = item.buy_price
-                    sellPrice = item.sell_price
+                    item.buy_price = buyPrice
+                    item.sell_price = sellPrice
                     winsound.PlaySound(".\\Quack_Sound_Effect.wav", winsound.SND_FILENAME)
             text_var.set(f"Item: {name}\nBuy: {buyPrice}\nSell: {sellPrice}")
 

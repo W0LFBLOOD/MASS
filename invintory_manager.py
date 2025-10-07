@@ -11,8 +11,9 @@ import csv
 import requests
 import tkinter as tk
 from ctypes import windll
-import time
 import threading
+from fuzzywuzzy import fuzz
+from fuzzywuzzy import process
 
 root = tk.Tk()
 root.attributes('-topmost', True)      # Always on top
@@ -39,6 +40,8 @@ else:
     print(f"Error: {response.status_code}")
     print(response.text)
     raise Exception("Failed to fetch data from API")
+
+market_data = {item['item_name']: item for item in data['data']}
 
 def abbreviate_number(num, decimals=1):
     """
@@ -108,42 +111,31 @@ def main_loop():
         frame = cv2.cvtColor(sct_img, cv2.COLOR_BGRA2BGR)
 
         text = pytesseract.image_to_string(frame, config="--oem 3 --psm 6")
-
         before, volume_line = extract_before_volume(text)
         if volume_line:
             if "Capacity:" in before:
                 before = before.split("\nCapacity:")[0]
             if "\n" in before:
                 before = before.replace("\n", " ").strip()
-            for item in data["data"]:
-                        if before in item["item_name"]:
-                            buyPrice= abbreviate_number(item["price_buy"])
-                            sellPrice = abbreviate_number(item["price_sell"])
-                            break
-                        else:
-                            buyPrice= "no data found"
-                            sellPrice = "no data found"
-            strToPrint = f"Item: {before}\nBuy Price: {buyPrice}\nSell Price: {sellPrice}"
-            text_var.set(strToPrint)
+            output = process.extract(before, market_data.keys(), limit=3)
+            if output and output[0][1] > 90:
+                name = output[0][0]
+                buyPrice = abbreviate_number(market_data[name]['price_buy'])
+                sellPrice = abbreviate_number(market_data[name]['price_sell'])
+            else:
+                name = before
+                buyPrice = "no match"
+                sellPrice = "no match"
             if keyboard.is_pressed("b"):
-                winsound.PlaySound(".\\Quack_Sound_Effect.wav", winsound.SND_FILENAME)
-
-                #format string to remove noise
-                if before in items:
-                    print("added "+ before)
-                    items[before].amount += 1
-                else:
-                    print("added "+ before)
-                    items[before] = itemClass(name=before)
-                    for item in data["data"]:
-                        if item["item_name"] in items:
-                            items[before].buy_price = item["price_buy"]
-                            items[before].sell_price = item["price_sell"]
-
-
-
-                # Small delay so it doesn’t print multiple times on one press
-                text_var.set("item added: " + before)
+                    if name not in items:
+                        items[name] = itemClass(name=name)
+                    item = items[name]
+                    item.amount += 1
+                    name = name
+                    buyPrice = item.buy_price
+                    sellPrice = item.sell_price
+                    winsound.PlaySound(".\\Quack_Sound_Effect.wav", winsound.SND_FILENAME)
+            text_var.set(f"Item: {name}\nBuy: {buyPrice}\nSell: {sellPrice}")
 
 
     winsound.PlaySound(".\\Quack_Sound_Effect.wav", winsound.SND_FILENAME)
